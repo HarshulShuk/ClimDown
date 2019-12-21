@@ -82,6 +82,8 @@ bias.correct.dqm <- function(gcm, aggd.obs,
                              historical.end=getOption('calibration.end'),
                              detrend=FALSE,
                              ratio=FALSE) {
+
+    options(calibration.end = "1988-12-31")
     t0 <- as.PCICt(historical.start, attr(gcm.time, 'cal'))
     tn <- as.PCICt(historical.end, attr(gcm.time, 'cal'))
     prehist.period <- gcm.time < t0
