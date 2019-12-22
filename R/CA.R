@@ -332,7 +332,7 @@ ca.netcdf.returnObs <- function(idicies,weights,obs.file){
   nc <- nc_open(obs.file)
   a = apply.analogues.netcdf(indicies,weights,nc,'pr')
   nc_close(nc)
-  return a
+  a
   # observations = list()
   # observations$time = netcdf.calendar(nc, 'time')
   # observations$lons = nc_getx(nc.obs)
