@@ -300,7 +300,7 @@ ca.netcdf.wrapper <- function(gcm.file, obs.file, varname='tasmax') {
 
     # Read in GCM data
     nc <- nc_open(gcm.file)
-    gcm <- CD_ncvar_get(nc, varname)
+    gcm <- CD_ncvar_get(  nc, varname)
 
     gcm.time <- netcdf.calendar(nc, 'time')
     nc_close(nc)
@@ -323,4 +323,11 @@ ca.netcdf.wrapper <- function(gcm.file, obs.file, varname='tasmax') {
     )
     print("Finding an analogous observered timestep for each GCM time step")
     find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
+}
+
+ca.netcdf.returnObs <- function(obs.file){
+  nc <- nc_open(obs.file)
+  obs.time <- netcdf.calendar(nc, 'time')
+  nc_close(nc)
+  obs.time
 }
