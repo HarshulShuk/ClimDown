@@ -54,6 +54,7 @@ bccaq.netcdf.wrapper <- function(gcm.file, obs.file, out.file, varname='tasmax')
     analogues <- ca.netcdf.wrapper(gcm.file, obs.file, varname)
     rerank.netcdf.wrapper(qdm.file, obs.file, analogues, out.file, varname)
     unlink(qdm.file)
+    
 
     print('Elapsed time')
     print(proc.time() - ptm)

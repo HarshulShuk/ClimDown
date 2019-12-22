@@ -245,6 +245,7 @@ utils::globalVariables('i')
 # gcm.times: PCICt vector of time values for the GCM
 # obs.time: PCICt vector of time values for the aggregated obs
 find.all.analogues <- function(gcm, agged.obs, gcm.times, obs.times) {
+    ptm <- proc.time()
     foreach(
         i=seq_along(gcm.times),
         .export=c('gcm', 'agged.obs', 'obs.times', 'gcm.times'),
@@ -257,6 +258,8 @@ find.all.analogues <- function(gcm, agged.obs, gcm.times, obs.times) {
             now <- gcm.times[i]
             find.analogues(gcm[,,i], agged.obs, obs.times, now)
     }
+    print('Time to find analagous days:')
+    print(proc.time() - ptm)
 }
 
 mk.output.ncdf <- function(file.name, varname, template.nc, global.attrs=list()) {
@@ -325,9 +328,17 @@ ca.netcdf.wrapper <- function(gcm.file, obs.file, varname='tasmax') {
     find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
 }
 
-ca.netcdf.returnObs <- function(obs.file){
+ca.netcdf.returnObs <- function(idicies,weights,obs.file){
   nc <- nc_open(obs.file)
-  obs.time <- netcdf.calendar(nc, 'time')
+  a = apply.analogues.netcdf(indicies,weights,nc,'pr')
   nc_close(nc)
-  obs.time
+  return a
+  # observations = list()
+  # observations$time = netcdf.calendar(nc, 'time')
+  # observations$lons = nc_getx(nc.obs)
+  # observations$lats = nc_gety(nc.obs)
+  
+  # obs.time
+  #   obs.lons <- nc_getx(nc.obs)
+  # obs.lats <- nc_gety(nc.obs)
 }
