@@ -329,7 +329,7 @@ ca.netcdf.wrapper <- function(gcm.file, obs.file, varname='tasmax') {
     find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
 }
 
-ca.netcdf.returnObs <- function(idicies,weights,obs.file){
+ca.netcdf.returnObs <- function(indicies,weights,obs.file){
   nc <- nc_open(obs.file)
   a = apply.analogues.netcdf(indicies,weights,nc,'pr')
   nc_close(nc)
