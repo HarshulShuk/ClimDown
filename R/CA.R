@@ -246,7 +246,7 @@ utils::globalVariables('i')
 # obs.time: PCICt vector of time values for the aggregated obs
 find.all.analogues <- function(gcm, agged.obs, gcm.times, obs.times) {
     ptm <- proc.time()
-    foreach(
+    ret <- foreach(
         i=seq_along(gcm.times),
         .export=c('gcm', 'agged.obs', 'obs.times', 'gcm.times'),
         .errorhandling='pass',
@@ -260,6 +260,7 @@ find.all.analogues <- function(gcm, agged.obs, gcm.times, obs.times) {
     }
     print('Time to find analagous days:')
     print(proc.time() - ptm)
+    ret
 }
 
 mk.output.ncdf <- function(file.name, varname, template.nc, global.attrs=list()) {
