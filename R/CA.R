@@ -246,6 +246,7 @@ utils::globalVariables('i')
 # obs.time: PCICt vector of time values for the aggregated obs
 find.all.analogues <- function(gcm, agged.obs, gcm.times, obs.times) {
     ptm <- proc.time()
+
     ret <- foreach(
         i=seq_along(gcm.times),
         .export=c('gcm', 'agged.obs', 'obs.times', 'gcm.times'),
@@ -258,6 +259,7 @@ find.all.analogues <- function(gcm, agged.obs, gcm.times, obs.times) {
             now <- gcm.times[i]
             find.analogues(gcm[,,i], agged.obs, obs.times, now)
     }
+
     print('Time to find analagous days:')
     print(proc.time() - ptm)
     ret
@@ -270,6 +272,56 @@ mk.output.ncdf <- function(file.name, varname, template.nc, global.attrs=list())
     }, names(global.attrs), global.attrs)
     nc
 }
+
+
+# use.LSH.buckets <- function(gcm, obs, gcm.times, obs.times, filePath){
+
+# }
+
+create.LSH.buckets <- function(gcm, gcm.time, numTrees, filePath){
+    library(RccpAnnoy)    
+
+    ptm <- proc.time()
+    vectLength = length(c(gcm[,,1]))
+    set.seed(123)
+
+    LSHTree <- new(AnnoyAngular, vectLength)
+
+
+    foreach(
+      i = seq_along(gcm.times),
+      .errorhandling = 'pass',
+      .inorder=TRUE,
+      ) %do% {
+        arr = c(gcm[,,i])
+        arr[is.na(arr)] <- 0 #Replace NA values with 0
+        LSHTree$addItem(i,arr)
+    }
+
+    LSHTree$build(numTrees)
+    ret <- foreach(
+        i=seq_along(gcm.times),
+        .export=c('gcm', 'agged.obs', 'obs.times', 'gcm.times'),
+        .errorhandling='pass',
+        .inorder=TRUE,
+        ) %dopar% {
+            arr = c(gcm[,,i])
+            arr[is.na(arr)] <- 0 #Replace NA values with 0
+            LSHTree$getNNsByVector(arr,30)
+        }
+
+
+    #    # Constructed analogue weights
+    # na.mask <- !is.na(agged.obs[,,1])
+    # obs.at.analogues <- t(matrix(agged.obs[,,analogue.indices][na.mask], ncol=n.analogues))
+    # weights <- construct.analogue.weights(obs.at.analogues, gcm[na.mask])
+
+
+    print('Time to find analagous days via LSH:')
+    print(proc.time() - ptm)
+    ret
+}
+
 
 #' @title High-level NetCDF I/O wrapper for the Constructed Analogues (CA) pipeline
 #'
@@ -326,20 +378,30 @@ ca.netcdf.wrapper <- function(gcm.file, obs.file, varname='tasmax') {
         detrend=!is.pr, ratio=is.pr
     )
     print("Finding an analogous observered timestep for each GCM time step")
-    find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
+    create.LSH.buckets(bc.gcm, gcm.time, "")
+    #find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
+
+    #(gcm, gcm.time, numTrees, filePath){
 }
 
 ca.netcdf.returnObs <- function(indicies,weights,obs.file){
   nc <- nc_open(obs.file)
+
+  #given weights/indicies item, recreate 
+
   a = apply.analogues.netcdf(indicies,weights,nc,'pr')
+
+  b = mk.output.ncdf("this.nc", "pr", a, a)
+
   nc_close(nc)
   a
-  # observations = list()
-  # observations$time = netcdf.calendar(nc, 'time')
-  # observations$lons = nc_getx(nc.obs)
-  # observations$lats = nc_gety(nc.obs)
-  
-  # obs.time
-  #   obs.lons <- nc_getx(nc.obs)
-  # obs.lats <- nc_gety(nc.obs)
+}
+
+ca.netcdf.findRMSE <- function(obs.file, downscaled.file){
+  obs <- nc_open(obs.file)
+  downscaled <- nc_open(downscaled.file)
+
+
+  nc_close(obs)
+  nc_close(downscaled)
 }
