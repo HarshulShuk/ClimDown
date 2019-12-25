@@ -288,9 +288,9 @@ create.LSH.buckets <- function(gcm, gcm.times, numTrees, filePath){
     LSHTree <- new(AnnoyAngular, vectLength)
 
     for(index in seq_along(gcm.times)){
-       arr = c(gcm[,,i])
+       arr = c(gcm[,,index])
        arr[is.na(arr)] <- 0 #Replace NA values with 0
-       LSHTree$addItem(i,arr)
+       LSHTree$addItem(index,arr)
     }
 
     # foreach(
