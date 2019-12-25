@@ -279,7 +279,7 @@ mk.output.ncdf <- function(file.name, varname, template.nc, global.attrs=list())
 # }
 
 create.LSH.buckets <- function(gcm, gcm.time, numTrees, filePath){
-    library(RccpAnnoy)    
+    library(RcppAnnoy)    
 
     ptm <- proc.time()
     vectLength = length(c(gcm[,,1]))
