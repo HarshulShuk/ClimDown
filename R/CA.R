@@ -292,7 +292,7 @@ create.LSH.buckets <- function(gcm, gcm.times, numTrees, filePath){
        arr[is.na(arr)] <- 0 #Replace NA values with 0
        LSHTree$addItem(index,arr)
     }
-
+  
     # foreach(
     #   i = seq_along(gcm.times),
     #   .errorhandling = 'pass',
