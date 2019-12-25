@@ -278,7 +278,7 @@ mk.output.ncdf <- function(file.name, varname, template.nc, global.attrs=list())
 
 # }
 
-create.LSH.buckets <- function(gcm, gcm.time, numTrees, filePath){
+create.LSH.buckets <- function(gcm, gcm.times, numTrees, filePath){
     library(RcppAnnoy)    
 
     ptm <- proc.time()
