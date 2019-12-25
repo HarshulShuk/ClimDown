@@ -301,13 +301,13 @@ create.LSH.buckets <- function(gcm, gcm.times, obs, obs.times, numTrees){
     ret <- foreach(
       i = seq_along(gcm.times),
       .errorhandling = 'pass',
-      .inorder=TRUE,
-      .final=function(x) {
+      .inorder = TRUE,
+      .final = function(x) {
           split(unlist(x, recursive=F, use.names=F), c('indices', 'weights'))}
       ) %do% {
         arr = c(gcm[,,i])
         arr[is.na(arr)] <- 0 #Replace NA values with 0
-        indices = LSHTree$getNNByVector(arr,31)
+        indices = LSHTree$getNNsByVector(arr,31)
         indices = indices[2:length(indices)] #The current day is also in bucket, so remove the first cuz theyre sorted by closeness
 
         observations = obs[,,indices]
@@ -315,13 +315,6 @@ create.LSH.buckets <- function(gcm, gcm.times, obs, obs.times, numTrees){
 
         list(analogues=indices, weights=weights)
     }
-
-    # # # # # # Constructed analogue weights
-    # na.mask <- !is.na(agged.obs[,,1])
-    # obs.at.analogues <- t(matrix(agged.obs[,,analogue.indices][na.mask], ncol=n.analogues))
-    # weights <- construct.analogue.weights(obs.at.analogues, gcm[na.mask])
-
-
 
     print('Time to find analagous days via LSH:')
     print(proc.time() - ptm)
