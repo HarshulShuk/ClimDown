@@ -278,48 +278,49 @@ mk.output.ncdf <- function(file.name, varname, template.nc, global.attrs=list())
 
 # }
 
-create.LSH.buckets <- function(gcm, gcm.times, numTrees, filePath){
+create.LSH.buckets <- function(gcm, gcm.times, obs, obs.times, numTrees){
     library(RcppAnnoy)    
 
     ptm <- proc.time()
     vectLength = length(c(gcm[,,1]))
     set.seed(123)
 
+    #Create out LSHTree and all GCM days in
     LSHTree <- new(AnnoyAngular, vectLength)
-
     for(index in seq_along(gcm.times)){
        arr = c(gcm[,,index])
        arr[is.na(arr)] <- 0 #Replace NA values with 0
        LSHTree$addItem(index,arr)
     }
   
-    # foreach(
-    #   i = seq_along(gcm.times),
-    #   .errorhandling = 'pass',
-    #   .inorder=TRUE,
-    #   ) %do% {
-    #     arr = c(gcm[,,i])
-    #     arr[is.na(arr)] <- 0 #Replace NA values with 0
-    #     LSHTree$addItem(i,arr)
-    # }
-
+    #Build the tree
     LSHTree$build(numTrees)
+
+    #For each GCM day, find the indexes of the past GCM days that match
+    #After indexes are found, find the weights needed
     ret <- foreach(
-        i=seq_along(gcm.times),
-        .export=c('gcm', 'agged.obs', 'obs.times', 'gcm.times'),
-        .errorhandling='pass',
-        .inorder=TRUE,
-        ) %dopar% {
-            arr = c(gcm[,,i])
-            arr[is.na(arr)] <- 0 #Replace NA values with 0
-            LSHTree$getNNsByVector(arr,30)
-        }
+      i = seq_along(gcm.times),
+      .errorhandling = 'pass',
+      .inorder=TRUE,
+      .final=function(x) {
+          split(unlist(x, recursive=F, use.names=F), c('indices', 'weights'))}
+      ) %do% {
+        arr = c(gcm[,,i])
+        arr[is.na(arr)] <- 0 #Replace NA values with 0
+        indices = LSHTree$getNNByVector(arr,31)
+        indices = indices[2:length(indices)] #The current day is also in bucket, so remove the first cuz theyre sorted by closeness
 
+        observations = obs[,,indices]
+        weights <- construct.analogue.weights(observations,arr) 
 
-    #    # Constructed analogue weights
+        list(analogues=indices, weights=weights)
+    }
+
+    # # # # # # Constructed analogue weights
     # na.mask <- !is.na(agged.obs[,,1])
     # obs.at.analogues <- t(matrix(agged.obs[,,analogue.indices][na.mask], ncol=n.analogues))
     # weights <- construct.analogue.weights(obs.at.analogues, gcm[na.mask])
+
 
 
     print('Time to find analagous days via LSH:')
@@ -383,7 +384,7 @@ ca.netcdf.wrapper <- function(gcm.file, obs.file, varname='tasmax') {
         detrend=!is.pr, ratio=is.pr
     )
     print("Finding an analogous observered timestep for each GCM time step")
-    create.LSH.buckets(bc.gcm, gcm.time, 75, "")
+    create.LSH.buckets(bc.gcm, gcm.time, aggd.obs, obs.time, 75)
     #find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
 
     #(gcm, gcm.time, numTrees, filePath){
