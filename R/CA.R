@@ -477,10 +477,43 @@ apply.analogues.output <- function(obs.file, analogues, out.file, varname='tasma
     print('Elapsed time')
 }
 
+#input: filename
+extract.lat.lon.time <- function(filename, var){
+  nc = nc_open(filename)
+
+  nc.lons <- nc_getx(nc)
+  nc.lats <- nc_gety(nc)
+  nc.time <- netcdf.calendar(nc, 'time')
+
+  # Figure out which GCM grid boxes are associated with each fine-scale grid point
+  # grid.mapping <- regrid.coarse.to.fine(gcm.lats, gcm.lons, obs.lats, obs.lons)
+  # xi <- grid.mapping$xi
+  # yi <- grid.mapping$yi
+  # xn <- length(unique(as.vector(xi)))
+  # yn <- length(unique(as.vector(yi)))
+
+  aggregates <- array(dim=c(length(nc.lons), length(nc.lats), length(nc.time)))
+  chunk.size <- optimal.chunk.size(length(nc.lons) * length(nc.lats))
+  chunks <- chunk.indices(length(nc.time), chunk.size)
+
+  # Loop over chunks fo time
+  for (i in chunks) {
+    print(paste("Aggregating timesteps", i['start'], "-", i['stop'], "/", length(obs.time)))
+    data <- CD_ncvar_get(nc, varid=var, start=c(1, 1, i['start']), # get obs for one chunk
+                     count=c(-1, -1, i['length']))
+    aggregates[,, i['start']:i['stop']] <- data
+    rm(data)
+    gc()
+  }
+
+  nc_close(filename)
+  aggregates
+}
+
 
 #Summation of RMSE. Take square root at end instead of b/t matricies
 ca.netcdf.findRMSE <- function(obs.file, downscaled.file){
-  obs <- nc_open(obs.file)
+  obs <- extract.lat.lon.time(obs.file, 'pr')
   downscaled <- nc_open(downscaled.file)
   obs.time <- netcdf.calendar(obs, 'time')
   
