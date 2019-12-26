@@ -247,8 +247,6 @@ utils::globalVariables('i')
 find.all.analogues <- function(gcm, agged.obs, gcm.times, obs.times) {
     ptm <- proc.time()
 
-#    a = find.analogues(gcm[,,10], agged.obs, obs.times, gcm.times[10])
-
     ret <- foreach(
         i=seq_along(gcm.times),
         .export=c('gcm', 'agged.obs', 'obs.times', 'gcm.times'),
@@ -274,7 +272,6 @@ mk.output.ncdf <- function(file.name, varname, template.nc, global.attrs=list())
     }, names(global.attrs), global.attrs)
     nc
 }
-
 
 
 # Use LSH to find analogs + weights
@@ -323,19 +320,6 @@ find.all.analogues.LSH <- function(gcm, gcm.times, obs, obs.times, numTrees){
         list(analogues=indices, weights=weights)
     }
 
-    # arr = c(gcm[,,10])
-    # arr[is.na(arr)] <- 0 #Replace NA values with 0
-    # indices = LSHTree$getNNsByVector(arr,31)
-    # indices = indices[2:length(indices)] #The current day is also in bucket, so remove the first cuz theyre sorted by closeness
-
-    # observations = obs[,,indices]
-    # observations[is.na(observations)] <- 0
-    # observations = t(matrix(observations, ncol = 30))
-
-    # model = c(gcm[,,10])
-    # model[is.na(model)] <- 0
-
-    # weights <- construct.analogue.weights(observations,model) 
     print('Time to find analagous days via LSH:')
     print(proc.time() - ptm)
     ret
@@ -430,18 +414,7 @@ ca.netcdf.wrapper.LSH <- function(gcm.file, obs.file, varname='tasmax') {
     find.all.analogues.LSH(bc.gcm, gcm.time, aggd.obs, obs.time, 75)
   }
 
-ca.netcdf.returnObs  <- function(indicies, weights, obs.file){
-  obs <- nc_open(obs.file)
 
-  #given weights/indicies item, recreate 
-
-  a = apply.analogues.netcdf(indicies,weights, obs,'pr')
-
-  b = mk.output.ncdf("this.nc", "pr", a, a)
-
-  nc_close(nc)
-  a
-}
 
 # analog.indices: vector of time indices that correspond to the timesteps to compose together
 # weights: vector of length num.analogues corresponding to the analog indices
@@ -509,6 +482,10 @@ apply.analogues.output <- function(obs.file, analogues, out.file, varname='tasma
 ca.netcdf.findRMSE <- function(obs.file, downscaled.file){
   obs <- nc_open(obs.file)
   downscaled <- nc_open(downscaled.file)
+
+
+  diffs <- (obs - array(gcm, dim(agged.obs))) ^ 2
+  diffs <- apply(diffs, 3, sum, na.rm=T)
 
 
   nc_close(obs)
