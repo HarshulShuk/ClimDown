@@ -326,7 +326,7 @@ create.LSH.buckets <- function(gcm, gcm.times, obs, obs.times, numTrees){
 
      observations = obs[,,indices]
      observations[is.na(observations)] <- 0
-     observations = t(matrix(observations, ncol = 30)
+     observations = t(matrix(observations, ncol = 30))
      weights <- construct.analogue.weights(c(observations),gcm[,,10]) 
 
 
