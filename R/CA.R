@@ -498,7 +498,6 @@ extract.lat.lon.time <- function(filename, var){
 
   # Loop over chunks fo time
   for (i in chunks) {
-    print(paste("Aggregating timesteps", i['start'], "-", i['stop'], "/", length(obs.time)))
     data <- CD_ncvar_get(nc, varid=var, start=c(1, 1, i['start']), # get obs for one chunk
                      count=c(-1, -1, i['length']))
     aggregates[,, i['start']:i['stop']] <- data
