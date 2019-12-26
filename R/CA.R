@@ -519,7 +519,7 @@ ca.netcdf.findRMSE <- function(obs.file, downscaled.file, var){
   diff = 0
   for(timeIndex in seq_along(obs.time)){
       obsData <- CD_ncvar_get(obs, varid=var, start=c(1, 1, timeIndex),
-                     count=c(-1, -1, 1))
+                     count=c(-1, -1, 1))[,,1]
       downscaledData <- CD_ncvar_get(downscaled, varid=var, start=c(1, 1, timeIndex),
                      count=c(-1, -1, 1))[,,1]
 
