@@ -247,20 +247,20 @@ utils::globalVariables('i')
 find.all.analogues <- function(gcm, agged.obs, gcm.times, obs.times) {
     ptm <- proc.time()
 
-    a = find.analogues(gcm[,,5], agged.obs, obs.times, gcm.times[5])
+    a = find.analogues(gcm[,,10], agged.obs, obs.times, gcm.times[10])
 
-    ret <- foreach(
-        i=seq_along(gcm.times),
-        .export=c('gcm', 'agged.obs', 'obs.times', 'gcm.times'),
-        .errorhandling='pass',
-        .inorder=TRUE,
-        .final=function(x) {
-            split(unlist(x, recursive=F, use.names=F), c('indices', 'weights'))
-        }
-        ) %dopar% {
-            now <- gcm.times[i]
-            find.analogues(gcm[,,i], agged.obs, obs.times, now)
-    }
+    # ret <- foreach(
+    #     i=seq_along(gcm.times),
+    #     .export=c('gcm', 'agged.obs', 'obs.times', 'gcm.times'),
+    #     .errorhandling='pass',
+    #     .inorder=TRUE,
+    #     .final=function(x) {
+    #         split(unlist(x, recursive=F, use.names=F), c('indices', 'weights'))
+    #     }
+    #     ) %dopar% {
+    #         now <- gcm.times[i]
+    #         find.analogues(gcm[,,i], agged.obs, obs.times, now)
+    # }
 
     print('Time to find analagous days:')
     print(proc.time() - ptm)
@@ -392,8 +392,8 @@ ca.netcdf.wrapper <- function(gcm.file, obs.file, varname='tasmax') {
         detrend=!is.pr, ratio=is.pr
     )
     print("Finding an analogous observered timestep for each GCM time step")
-    create.LSH.buckets(bc.gcm, gcm.time, aggd.obs, obs.time, 75)
-    # find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
+    #create.LSH.buckets(bc.gcm, gcm.time, aggd.obs, obs.time, 75)
+    find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
 
     #(gcm, gcm.time, numTrees, filePath){
 }
