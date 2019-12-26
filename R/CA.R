@@ -304,7 +304,7 @@ create.LSH.buckets <- function(gcm, gcm.times, obs, obs.times, numTrees){
       .inorder = TRUE,
       .final = function(x) {
           split(unlist(x, recursive=F, use.names=F), c('indices', 'weights'))}
-      ) %do% {
+      ) %dopar% {
         arr = c(gcm[,,i])
         arr[is.na(arr)] <- 0 #Replace NA values with 0
         indices = LSHTree$getNNsByVector(arr,31)
@@ -390,8 +390,8 @@ ca.netcdf.wrapper <- function(gcm.file, obs.file, varname='tasmax') {
         detrend=!is.pr, ratio=is.pr
     )
     print("Finding an analogous observered timestep for each GCM time step")
-    create.LSH.buckets(bc.gcm, gcm.time, aggd.obs, obs.time, 75)
-    #find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
+    #create.LSH.buckets(bc.gcm, gcm.time, aggd.obs, obs.time, 75)
+    find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
 
     #(gcm, gcm.time, numTrees, filePath){
 }
