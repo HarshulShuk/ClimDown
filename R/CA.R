@@ -430,18 +430,78 @@ ca.netcdf.wrapper.LSH <- function(gcm.file, obs.file, varname='tasmax') {
     find.all.analogues.LSH(bc.gcm, gcm.time, aggd.obs, obs.time, 75)
   }
 
-ca.netcdf.returnObs <- function(indicies,weights,obs.file){
-  nc <- nc_open(obs.file)
+ca.netcdf.returnObs  <- function(indicies, weights, obs.file){
+  obs <- nc_open(obs.file)
 
   #given weights/indicies item, recreate 
 
-  a = apply.analogues.netcdf(indicies,weights,nc,'pr')
+  a = apply.analogues.netcdf(indicies,weights, obs,'pr')
 
   b = mk.output.ncdf("this.nc", "pr", a, a)
 
   nc_close(nc)
   a
 }
+
+# analog.indices: vector of time indices that correspond to the timesteps to compose together
+# weights: vector of length num.analogues corresponding to the analog indices
+# obs.nc: An open netcdf file containing gridded observations
+apply.analogues.netcdf <- function(analog.indices, weights, obs.nc, varid='tasmax') {
+    dims <- c(obs.nc$var[[varid]]$size[1:2],getOption('n.analogues'))
+    apply(
+        array(
+            positive_pr(
+                mapply(function(i, w) {
+                    CD_ncvar_get(nc=obs.nc, varid=varid,
+                                 start=c(1, 1, i),
+                                 count=c(-1, -1, 1)) * w
+                },
+                analog.indices, weights
+                ),
+                varid
+            ),
+            dim=dims,
+            ),
+        1:2, sum
+    )
+}
+
+
+apply.analogues.output <- function(obs.file, analogues, out.file, varname='tasmax') {
+    obs <- nc_open(obs.file)
+    obs.time <- netcdf.calendar(obs, 'time')
+
+    cat('Creating output file', out.file, '\n')
+    dims <- obs$var[[varname]]$dim
+    vars <- ncvar_def(varname, getOption('target.units')[varname], dims, NA)
+    out.nc <- nc_create(out.file, vars)
+
+    # nlat <- obs$dimensions$lat
+    # nlon <- obs$dimensions$lon
+
+    for (index in seq_along(obs.time)) {
+        var.ca <- mapply(
+            function(ti, wi) {
+                apply.analogues.netcdf(ti, wi, obs.nc, varname)
+            },
+            analogues$indices[index],
+            analogues$weights[index]
+        )
+        var.ca <- positive_pr(var.ca, varname)
+    
+        ncvar_put(nc=out.nc, varid=varname, vals=var.ca,
+                  start=c(1, 1, index), count=c(-1, -1, 1))
+        rm(var.ca)
+        gc()
+    }
+
+    nc_close(obs)
+    nc_close(out.nc)
+
+    print('Elapsed time')
+}
+
+
 
 ca.netcdf.findRMSE <- function(obs.file, downscaled.file){
   obs <- nc_open(obs.file)

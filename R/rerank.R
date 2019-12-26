@@ -153,3 +153,40 @@ rerank.netcdf.wrapper <- function(qdm.file, obs.file, analogues, out.file, varna
     print('Elapsed time')
     print(proc.time() - ptm)
 }
+
+
+rerank.netcdf.wrapper <- function(obs.file, analogues, out.file, varname='tasmax') {
+    obs <- nc_open(obs.file)
+
+
+    cat('Creating output file', out.file, '\n')
+    dims <- obs$var[[varname]]$dim
+    vars <- ncvar_def(varname, getOption('target.units')[varname], dims, NA)
+    out.nc <- nc_create(out.file, vars)
+
+    nlat <- obs$dimensions$lat
+    nlon <- obs$dimensions$lon
+
+    qdm.time <- compute.time.stats(qdm.nc)
+
+    for (index in seq_along()) {
+        var.ca <- mapply(
+            function(ti, wi) {
+                apply.analogues.netcdf(ti, wi, obs.nc, varname)
+            },
+            analogues$indices[index],
+            analogues$weights[index]
+        )
+        var.ca <- positive_pr(var.ca, varname)
+    
+        ncvar_put(nc=out.nc, varid=varname, vals=var.ca,
+                  start=c(1, 1, index), count=c(-1, -1, 1))
+        rm(var.ca)
+        gc()
+    }
+
+    nc_close(obs)
+    nc_close(out.nc)
+
+    print('Elapsed time')
+}

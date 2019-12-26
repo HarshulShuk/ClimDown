@@ -59,3 +59,20 @@ bccaq.netcdf.wrapper <- function(gcm.file, obs.file, out.file, varname='tasmax')
     print('Elapsed time')
     print(proc.time() - ptm)
 }
+
+bccaq.netcdf.wrapper.LSH <- function(gcm.file, obs.file, out.file, varname='tasmax') {
+    ptm <- proc.time()
+
+    ci.file <- tempfile(fileext='.nc')
+    ci.netcdf.wrapper(gcm.file, obs.file, ci.file, varname)
+    qdm.file <- tempfile(fileext='.nc')
+    qdm.netcdf.wrapper(obs.file, ci.file, qdm.file, varname)
+    unlink(ci.file)
+    analogues <- ca.netcdf.wrapper.LSH(gcm.file, obs.file, varname)
+    rerank.netcdf.wrapper(qdm.file, obs.file, analogues, out.file, varname)
+    unlink(qdm.file)
+    
+
+    print('Elapsed time')
+    print(proc.time() - ptm)
+}
