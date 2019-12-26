@@ -478,16 +478,21 @@ apply.analogues.output <- function(obs.file, analogues, out.file, varname='tasma
 }
 
 
-
+#Summation of RMSE. Take square root at end instead of b/t matricies
 ca.netcdf.findRMSE <- function(obs.file, downscaled.file){
   obs <- nc_open(obs.file)
   downscaled <- nc_open(downscaled.file)
-
-
-  diffs <- (obs - array(gcm, dim(agged.obs))) ^ 2
-  diffs <- apply(diffs, 3, sum, na.rm=T)
-
+  obs.time <- netcdf.calendar(obs, 'time')
+  
+  diff = 0
+  for(timeIndex in seq_along(obs.time)){
+      thisDiff <- (obs[,,timeIndex] - downscaled[,,timeIndex]) ^ 2
+      thisDiff <- apply(diffs, 1:2, sum)
+      diff = diff + thisDiff
+  }
+  diff = sqrt(diff)
 
   nc_close(obs)
   nc_close(downscaled)
+  diff
 }
