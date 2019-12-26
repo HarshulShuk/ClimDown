@@ -399,9 +399,7 @@ ca.netcdf.wrapper <- function(gcm.file, obs.file, varname='tasmax') {
     print("Finding an analogous observered timestep for each GCM time step")
     #create.LSH.buckets(bc.gcm, gcm.time, aggd.obs, obs.time, 75)
     find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
-
-    #(gcm, gcm.time, numTrees, filePath){
-}
+  }
 
 ca.netcdf.returnObs <- function(indicies,weights,obs.file){
   nc <- nc_open(obs.file)
