@@ -247,6 +247,8 @@ utils::globalVariables('i')
 find.all.analogues <- function(gcm, agged.obs, gcm.times, obs.times) {
     ptm <- proc.time()
 
+    a = find.analogues(gcm[,,5], agged.obs, obs.times, gcm.times[5])
+
     ret <- foreach(
         i=seq_along(gcm.times),
         .export=c('gcm', 'agged.obs', 'obs.times', 'gcm.times'),
