@@ -284,7 +284,7 @@ find.all.analogues.LSH <- function(gcm, gcm.times, obs, obs.times, numTrees){
     set.seed(123)
 
     #Create out LSHTree and all GCM days in
-    LSHTree <- new(AnnoyAngular, vectLength)
+    LSHTree <- new(AnnoyEuclidean, vectLength)
     for(index in seq_along(gcm.times)){
        arr = c(gcm[,,index])
        arr[is.na(arr)] <- 0 #Replace NA values with 0
