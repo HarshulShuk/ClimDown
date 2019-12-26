@@ -247,20 +247,20 @@ utils::globalVariables('i')
 find.all.analogues <- function(gcm, agged.obs, gcm.times, obs.times) {
     ptm <- proc.time()
 
-    a = find.analogues(gcm[,,10], agged.obs, obs.times, gcm.times[10])
+#    a = find.analogues(gcm[,,10], agged.obs, obs.times, gcm.times[10])
 
-    # ret <- foreach(
-    #     i=seq_along(gcm.times),
-    #     .export=c('gcm', 'agged.obs', 'obs.times', 'gcm.times'),
-    #     .errorhandling='pass',
-    #     .inorder=TRUE,
-    #     .final=function(x) {
-    #         split(unlist(x, recursive=F, use.names=F), c('indices', 'weights'))
-    #     }
-    #     ) %dopar% {
-    #         now <- gcm.times[i]
-    #         find.analogues(gcm[,,i], agged.obs, obs.times, now)
-    # }
+    ret <- foreach(
+        i=seq_along(gcm.times),
+        .export=c('gcm', 'agged.obs', 'obs.times', 'gcm.times'),
+        .errorhandling='pass',
+        .inorder=TRUE,
+        .final=function(x) {
+            split(unlist(x, recursive=F, use.names=F), c('indices', 'weights'))
+        }
+        ) %dopar% {
+            now <- gcm.times[i]
+            find.analogues(gcm[,,i], agged.obs, obs.times, now)
+    }
 
     print('Time to find analagous days:')
     print(proc.time() - ptm)
@@ -276,11 +276,10 @@ mk.output.ncdf <- function(file.name, varname, template.nc, global.attrs=list())
 }
 
 
-# use.LSH.buckets <- function(gcm, obs, gcm.times, obs.times, filePath){
 
-# }
-
-create.LSH.buckets <- function(gcm, gcm.times, obs, obs.times, numTrees){
+# Use LSH to find analogs + weights
+# Fills NA values in with 0s instead of ignoring
+find.all.analogues.LSH <- function(gcm, gcm.times, obs, obs.times, numTrees){
     library(RcppAnnoy)    
 
     ptm <- proc.time()
@@ -298,44 +297,45 @@ create.LSH.buckets <- function(gcm, gcm.times, obs, obs.times, numTrees){
     #Build the tree
     LSHTree$build(numTrees)
 
-    ret <- c(1)
     #For each GCM day, find the indexes of the past GCM days that match
     #After indexes are found, find the weights needed
-    # ret <- foreach(
-    #   i = seq_along(gcm.times),
-    #   .errorhandling = 'pass',
-    #   .inorder = TRUE,
-    #   .final = function(x) {
-    #       split(unlist(x, recursive=F, use.names=F), c('indices', 'weights'))}
-    #   ) %dopar% {
-    #     arr = c(gcm[,,i])
-    #     arr[is.na(arr)] <- 0 #Replace NA values with 0
-    #     indices = LSHTree$getNNsByVector(arr,31)
-    #     indices = indices[2:length(indices)] #The current day is also in bucket, so remove the first cuz theyre sorted by closeness
+    ret <- foreach(
+      i = seq_along(gcm.times),
+      .errorhandling = 'pass',
+      .inorder = TRUE,
+      .final = function(x) {
+          split(unlist(x, recursive=F, use.names=F), c('indices', 'weights'))}
+      ) %dopar% {
+        arr = c(gcm[,,i])
+        arr[is.na(arr)] <- 0 #Replace NA values with 0
+        indices = LSHTree$getNNsByVector(arr,31)
+        indices = indices[2:length(indices)] #The current day is also in bucket, so remove the first cuz theyre sorted by closeness
 
-    #     observations = obs[,,indices]
-    #     observations[is.na(observations)] <- 0
-    #     weights <- construct.analogue.weights(c(observations),arr) 
+        observations = obs[,,indices]
+        observations[is.na(observations)] <- 0
+        observations = t(matrix(observations, ncol = 30))
 
-    #     list(analogues=indices, weights=weights)
-    # }
+        model = c(gcm[,,10])
+        model[is.na(model)] <- 0
 
-    arr = c(gcm[,,10])
-    arr[is.na(arr)] <- 0 #Replace NA values with 0
-    indices = LSHTree$getNNsByVector(arr,31)
-    indices = indices[2:length(indices)] #The current day is also in bucket, so remove the first cuz theyre sorted by closeness
+        weights <- construct.analogue.weights(observations,model) 
 
-    observations = obs[,,indices]
-    observations[is.na(observations)] <- 0
-    observations = t(matrix(observations, ncol = 30))
+        list(analogues=indices, weights=weights)
+    }
 
-    model = c(gcm[,,10])
-    model[is.na(model)] <- 0
+    # arr = c(gcm[,,10])
+    # arr[is.na(arr)] <- 0 #Replace NA values with 0
+    # indices = LSHTree$getNNsByVector(arr,31)
+    # indices = indices[2:length(indices)] #The current day is also in bucket, so remove the first cuz theyre sorted by closeness
 
-    weights <- construct.analogue.weights(observations,model) 
+    # observations = obs[,,indices]
+    # observations[is.na(observations)] <- 0
+    # observations = t(matrix(observations, ncol = 30))
 
+    # model = c(gcm[,,10])
+    # model[is.na(model)] <- 0
 
-
+    # weights <- construct.analogue.weights(observations,model) 
     print('Time to find analagous days via LSH:')
     print(proc.time() - ptm)
     ret
@@ -397,8 +397,37 @@ ca.netcdf.wrapper <- function(gcm.file, obs.file, varname='tasmax') {
         detrend=!is.pr, ratio=is.pr
     )
     print("Finding an analogous observered timestep for each GCM time step")
-    create.LSH.buckets(bc.gcm, gcm.time, aggd.obs, obs.time, 75)
-    #find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
+    find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
+  }
+
+ca.netcdf.wrapper.LSH <- function(gcm.file, obs.file, varname='tasmax') {
+    is.pr <- varname == 'pr'
+
+    # Read in GCM data
+    nc <- nc_open(gcm.file)
+    gcm <- CD_ncvar_get(  nc, varname)
+
+    gcm.time <- netcdf.calendar(nc, 'time')
+    nc_close(nc)
+
+    print("Aggregating observations to GCM scale")
+    aggd.obs <- create.aggregates(obs.file, gcm.file, varname)
+
+    aggd.obs <- positive_pr(aggd.obs, varname)
+
+    print("Reading time values from the aggregated observations")
+    nc <- nc_open(obs.file)
+    obs.time <- netcdf.calendar(nc, 'time')
+    nc_close(nc)
+
+    print("Bias correcting the aggregated observations")
+    bc.gcm <- bias.correct.dqm(
+        gcm, aggd.obs, obs.time, gcm.time,
+        getOption('calibration.start'), getOption('calibration.end'),
+        detrend=!is.pr, ratio=is.pr
+    )
+    print("Finding an analogous observered timestep for each GCM time step")
+    find.all.analogues.LSH(bc.gcm, gcm.time, aggd.obs, obs.time, 75)
   }
 
 ca.netcdf.returnObs <- function(indicies,weights,obs.file){
