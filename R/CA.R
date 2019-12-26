@@ -276,7 +276,8 @@ mk.output.ncdf <- function(file.name, varname, template.nc, global.attrs=list())
 
 # Use LSH to find analogs + weights
 # Fills NA values in with 0s instead of ignoring
-find.all.analogues.LSH <- function(gcm, gcm.times, obs, obs.times, numTrees){
+# If invalid metric (not "Euc" or "Ang" then uses Euc)
+find.all.analogues.LSH <- function(gcm, gcm.times, obs, obs.times, numTrees, metric){
     library(RcppAnnoy)    
 
     ptm <- proc.time()
@@ -284,7 +285,14 @@ find.all.analogues.LSH <- function(gcm, gcm.times, obs, obs.times, numTrees){
     set.seed(123)
 
     #Create out LSHTree and all GCM days in
-    LSHTree <- new(AnnoyEuclidean, vectLength)
+    LSHTree <- c()
+    if(identical(metric,"Ang")){
+      LSHTree <- new(AnnoyAngular, vectLength)
+    }else{
+      LSHTree <- new(AnnoyEuclidean, vectLength)
+    }
+
+    #Insert all the values
     for(index in seq_along(gcm.times)){
        arr = c(gcm[,,index])
        arr[is.na(arr)] <- 0 #Replace NA values with 0
@@ -384,7 +392,7 @@ ca.netcdf.wrapper <- function(gcm.file, obs.file, varname='tasmax') {
     find.all.analogues(bc.gcm, aggd.obs, gcm.time, obs.time)
   }
 
-ca.netcdf.wrapper.LSH <- function(gcm.file, obs.file, varname='tasmax') {
+ca.netcdf.wrapper.LSH <- function(gcm.file, obs.file, varname, metric) {
     is.pr <- varname == 'pr'
 
     # Read in GCM data
@@ -411,7 +419,7 @@ ca.netcdf.wrapper.LSH <- function(gcm.file, obs.file, varname='tasmax') {
         detrend=!is.pr, ratio=is.pr
     )
     print("Finding an analogous observered timestep for each GCM time step")
-    find.all.analogues.LSH(bc.gcm, gcm.time, aggd.obs, obs.time, 75)
+    find.all.analogues.LSH(bc.gcm, gcm.time, aggd.obs, obs.time, 75, metric)
   }
 
 
@@ -449,20 +457,10 @@ apply.analogues.output <- function(obs.file, analogues, out.file, varname='tasma
     vars <- ncvar_def(varname, getOption('target.units')[varname], dims, NA)
     out.nc <- nc_create(out.file, vars)
 
-    # nlat <- obs$dimensions$lat
-    # nlon <- obs$dimensions$lon
-
     for (index in seq_along(obs.time)) {
         ind = analogues$indices[[index]]
         wei = analogues$weights[[index]]
         var.ca <- apply.analogues.netcdf(ind, wei, obs, varname)
-        # var.ca <- mapply(
-        #     function(ti, wi) {
-        #         apply.analogues.netcdf(ti, wi, obs, varname)
-        #     },
-        #     analogues$indices[index],
-        #     analogues$weights[index]
-        # )
         var.ca <- positive_pr(var.ca, varname)
     
         ncvar_put(nc=out.nc, varid=varname, vals=var.ca,
@@ -475,38 +473,6 @@ apply.analogues.output <- function(obs.file, analogues, out.file, varname='tasma
     nc_close(out.nc)
 
     print('Elapsed time')
-}
-
-#input: filename
-extract.lat.lon.time <- function(filename, var){
-  nc = nc_open(filename)
-
-  nc.lons <- nc_getx(nc)
-  nc.lats <- nc_gety(nc)
-  nc.time <- netcdf.calendar(nc, 'time')
-
-  # Figure out which GCM grid boxes are associated with each fine-scale grid point
-  # grid.mapping <- regrid.coarse.to.fine(gcm.lats, gcm.lons, obs.lats, obs.lons)
-  # xi <- grid.mapping$xi
-  # yi <- grid.mapping$yi
-  # xn <- length(unique(as.vector(xi)))
-  # yn <- length(unique(as.vector(yi)))
-
-  aggregates <- array(dim=c(length(nc.lons), length(nc.lats), length(nc.time)))
-  chunk.size <- optimal.chunk.size(length(nc.lons) * length(nc.lats))
-  chunks <- chunk.indices(length(nc.time), chunk.size)
-
-  # Loop over chunks fo time
-  for (i in chunks) {
-    data <- CD_ncvar_get(nc, varid=var, start=c(1, 1, i['start']), # get obs for one chunk
-                     count=c(-1, -1, i['length']))
-    aggregates[,, i['start']:i['stop']] <- data
-    rm(data)
-    gc()
-  }
-
-  nc_close(filename)
-  aggregates
 }
 
 
