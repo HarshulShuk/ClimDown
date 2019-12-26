@@ -453,8 +453,8 @@ apply.analogues.output <- function(obs.file, analogues, out.file, varname='tasma
     # nlon <- obs$dimensions$lon
 
     for (index in seq_along(obs.time)) {
-        ind = analogues$indices[index]
-        wei = analogues$weights[index]
+        ind = analogues$indices[[index]]
+        wei = analogues$weights[[index]]
         var.ca <- apply.analogues.netcdf(ind, wei, obs, varname)
         # var.ca <- mapply(
         #     function(ti, wi) {
