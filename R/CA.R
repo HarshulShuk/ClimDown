@@ -480,13 +480,16 @@ apply.analogues.output <- function(obs.file, analogues, out.file, varname='tasma
     # nlon <- obs$dimensions$lon
 
     for (index in seq_along(obs.time)) {
-        var.ca <- mapply(
-            function(ti, wi) {
-                apply.analogues.netcdf(ti, wi, obs, varname)
-            },
-            analogues$indices[index],
-            analogues$weights[index]
-        )
+        ind = analogues$indices[index]
+        wei = analogues$weights[index]
+        var.ca <- apply.analogues.netcdf(ind, wei, obs, varname)
+        # var.ca <- mapply(
+        #     function(ti, wi) {
+        #         apply.analogues.netcdf(ti, wi, obs, varname)
+        #     },
+        #     analogues$indices[index],
+        #     analogues$weights[index]
+        # )
         var.ca <- positive_pr(var.ca, varname)
     
         ncvar_put(nc=out.nc, varid=varname, vals=var.ca,
