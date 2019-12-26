@@ -300,24 +300,24 @@ create.LSH.buckets <- function(gcm, gcm.times, obs, obs.times, numTrees){
 
     #For each GCM day, find the indexes of the past GCM days that match
     #After indexes are found, find the weights needed
-    ret <- foreach(
-      i = seq_along(gcm.times),
-      .errorhandling = 'pass',
-      .inorder = TRUE,
-      .final = function(x) {
-          split(unlist(x, recursive=F, use.names=F), c('indices', 'weights'))}
-      ) %dopar% {
-        arr = c(gcm[,,i])
-        arr[is.na(arr)] <- 0 #Replace NA values with 0
-        indices = LSHTree$getNNsByVector(arr,31)
-        indices = indices[2:length(indices)] #The current day is also in bucket, so remove the first cuz theyre sorted by closeness
+    # ret <- foreach(
+    #   i = seq_along(gcm.times),
+    #   .errorhandling = 'pass',
+    #   .inorder = TRUE,
+    #   .final = function(x) {
+    #       split(unlist(x, recursive=F, use.names=F), c('indices', 'weights'))}
+    #   ) %dopar% {
+    #     arr = c(gcm[,,i])
+    #     arr[is.na(arr)] <- 0 #Replace NA values with 0
+    #     indices = LSHTree$getNNsByVector(arr,31)
+    #     indices = indices[2:length(indices)] #The current day is also in bucket, so remove the first cuz theyre sorted by closeness
 
-        observations = obs[,,indices]
-        observations[is.na(observations)] <- 0
-        weights <- construct.analogue.weights(c(observations),arr) 
+    #     observations = obs[,,indices]
+    #     observations[is.na(observations)] <- 0
+    #     weights <- construct.analogue.weights(c(observations),arr) 
 
-        list(analogues=indices, weights=weights)
-    }
+    #     list(analogues=indices, weights=weights)
+    # }
 
      arr = c(gcm[,,10])
      arr[is.na(arr)] <- 0 #Replace NA values with 0
