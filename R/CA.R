@@ -511,7 +511,7 @@ extract.lat.lon.time <- function(filename, var){
 
 
 #Summation of RMSE. Take square root at end instead of b/t matricies
-ca.netcdf.findRMSE <- function(obs.file, downscaled.file){
+ca.netcdf.findRMSE <- function(obs.file, downscaled.file, var){
   obs <- nc_open(obs.file)
   downscaled <- nc_open(downscaled.file)
   obs.time <- netcdf.calendar(obs, 'time')
