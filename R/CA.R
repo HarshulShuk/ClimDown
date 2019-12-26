@@ -524,7 +524,7 @@ ca.netcdf.findRMSE <- function(obs.file, downscaled.file, var){
                      count=c(-1, -1, 1))
 
       thisDiff <- (obsData - downscaledData) ^ 2
-      thisDiff <- apply(diffs, 1:2, sum)
+      thisDiff <- apply(thisDiff, 1:2, sum)
       diff = diff + thisDiff
   }
   diff = sqrt(diff)
