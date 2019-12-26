@@ -493,7 +493,7 @@ apply.analogues.output <- function(obs.file, analogues, out.file, varname='tasma
                   start=c(1, 1, index), count=c(-1, -1, 1))
         rm(var.ca)
         gc()
-    }
+    }  
 
     nc_close(obs)
     nc_close(out.nc)
